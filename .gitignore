@@ -1,0 +1,5 @@
+*.fbx
+keys.txt
+/venv
+/*.fbm
+__pycache__
