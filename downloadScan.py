@@ -20,6 +20,7 @@ def downloadNewScan(*params):
 			drive_file = api.drive['Scans'][f]
 			datetimes[drive_file.name] = drive_file.date_modified
 
+	# get the newest file in the folder
 	latest_file_name = max(datetimes, key=datetimes.get)
 	print(latest_file_name)
 	latest_file = api.drive['Scans'][latest_file_name]
@@ -33,15 +34,15 @@ def downloadNewScan(*params):
 		with open(new_file_name, 'wb') as file_out:
 			copyfileobj(response.raw, file_out)
 
+	# get file path of newly downloaded fbx scan
 	file_path = os.path.join( pathlib.Path().resolve(), new_file_name )
-	# importMyAsset(file_path)
+	
+	# tell unreal to import the asset
 	msg = osc_message_builder.OscMessageBuilder(address="/import")
 	msg.add_arg(file_path)
 	msg = msg.build()
 	client.send(msg)
 
-	# # call asset import here
-	# print("DONE")
 
 if __name__ == "__main__" :
 	# open a file called 'keys' with keys and tokens for this API
