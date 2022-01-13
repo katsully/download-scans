@@ -13,3 +13,5 @@ With downloadScan.py running, an OSC device sends a message on the address "/pus
 `py path\to\file\importAsset.py -f <filename>`
 
 This calls importAsset.py which takes the newly downloaded fbx files and imports it into the project.
+
+*Note, in downloadScan.py you will need to adjust the ip address in the client and server

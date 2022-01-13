@@ -78,6 +78,7 @@ if __name__ == "__main__" :
 
 	disp = Dispatcher()
 	disp.map("/push1", downloadNewScan)
+	# TODO add light and heavy mapping here
 	# disp.map("/")
 
 	# set up server
