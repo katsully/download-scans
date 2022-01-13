@@ -27,19 +27,21 @@ def downloadNewScan(*params):
 
 	now = datetime.now() # current date and time
 
-	new_file_name = now.strftime("%m_%d_%y_%H_%M_%S") + ".fbx"
+	new_file_name = now.strftime("%m_%d_%y_%H_%M_%S")
+	full_file_name = new_file_name + ".fbx"
 
 	from shutil import copyfileobj
 	with latest_file.open(stream=True) as response:
-		with open(new_file_name, 'wb') as file_out:
+		with open(full_file_name, 'wb') as file_out:
 			copyfileobj(response.raw, file_out)
 
 	# get file path of newly downloaded fbx scan
-	file_path = os.path.join( pathlib.Path().resolve(), new_file_name )
+	file_path = os.path.join( pathlib.Path().resolve(), full_file_name )
 	
 	# tell unreal to import the asset
 	msg = osc_message_builder.OscMessageBuilder(address="/import")
 	msg.add_arg(file_path)
+	msg.add_arg(new_file_name)
 	msg = msg.build()
 	client.send(msg)
 
