@@ -11,7 +11,16 @@ import os
 
 classifier = ""
 
+def setLight(*params):
+	global classifier
+	classifier = "light"
+
+def setHeavy(*params):
+	global classifier
+	classifier = "heavy"
+
 def downloadNewScan(*params):
+	global classifier
 	print("Received message!")
 	drive_files = api.drive['Scans'].dir()
 	datetimes = {}
@@ -22,12 +31,11 @@ def downloadNewScan(*params):
 
 	# get the newest file in the folder
 	latest_file_name = max(datetimes, key=datetimes.get)
-	print(latest_file_name)
 	latest_file = api.drive['Scans'][latest_file_name]
 
 	now = datetime.now() # current date and time
 
-	new_file_name = now.strftime("%m_%d_%y_%H_%M_%S")
+	new_file_name = "Scan_" + now.strftime("%m_%d_%y_%H_%M_%S")
 	full_file_name = new_file_name + ".fbx"
 
 	from shutil import copyfileobj
@@ -42,6 +50,7 @@ def downloadNewScan(*params):
 	msg = osc_message_builder.OscMessageBuilder(address="/import")
 	msg.add_arg(file_path)
 	msg.add_arg(new_file_name)
+	msg.add_arg(classifier)
 	msg = msg.build()
 	client.send(msg)
 
@@ -81,8 +90,8 @@ if __name__ == "__main__" :
 
 	disp = Dispatcher()
 	disp.map("/push1", downloadNewScan)
-	# TODO add light and heavy mapping here
-	# disp.map("/")
+	disp.map("/light", setLight)
+	disp.map("/heavy", setHeavy)
 
 	# set up server
 	server = osc_server.ThreadingOSCUDPServer(("10.18.220.247", 9000), disp)
