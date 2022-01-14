@@ -20,39 +20,42 @@ def setHeavy(*params):
 	classifier = "heavy"
 
 def downloadNewScan(*params):
-	global classifier
-	print("Received message!")
-	drive_files = api.drive['Scans'].dir()
-	datetimes = {}
-	for f in drive_files:
-		if ".fbx" in f:
-			drive_file = api.drive['Scans'][f]
-			datetimes[drive_file.name] = drive_file.date_modified
+	# ignore button release trigger (0.0), only button push (1.0)
+	if params[2] == 1.0:
+		global classifier
+		print("Received message!")
+		drive_files = api.drive['Scans'].dir()
+		datetimes = {}
+		for f in drive_files:
+			# ignore all non fbx files
+			if ".fbx" in f:
+				drive_file = api.drive['Scans'][f]
+				datetimes[drive_file.name] = drive_file.date_modified
 
-	# get the newest file in the folder
-	latest_file_name = max(datetimes, key=datetimes.get)
-	latest_file = api.drive['Scans'][latest_file_name]
+		# get the newest file in the folder
+		latest_file_name = max(datetimes, key=datetimes.get)
+		latest_file = api.drive['Scans'][latest_file_name]
 
-	now = datetime.now() # current date and time
+		now = datetime.now() # current date and time
 
-	new_file_name = "Scan_" + now.strftime("%m_%d_%y_%H_%M_%S")
-	full_file_name = new_file_name + ".fbx"
+		new_file_name = "Scan_" + now.strftime("%m_%d_%y_%H_%M_%S")
+		full_file_name = new_file_name + ".fbx"
 
-	from shutil import copyfileobj
-	with latest_file.open(stream=True) as response:
-		with open(full_file_name, 'wb') as file_out:
-			copyfileobj(response.raw, file_out)
+		from shutil import copyfileobj
+		with latest_file.open(stream=True) as response:
+			with open(full_file_name, 'wb') as file_out:
+				copyfileobj(response.raw, file_out)
 
-	# get file path of newly downloaded fbx scan
-	file_path = os.path.join( pathlib.Path().resolve(), full_file_name )
-	
-	# tell unreal to import the asset
-	msg = osc_message_builder.OscMessageBuilder(address="/import")
-	msg.add_arg(file_path)
-	msg.add_arg(new_file_name)
-	msg.add_arg(classifier)
-	msg = msg.build()
-	client.send(msg)
+		# get file path of newly downloaded fbx scan
+		file_path = os.path.join( pathlib.Path().resolve(), full_file_name )
+		
+		# tell unreal to import the asset
+		msg = osc_message_builder.OscMessageBuilder(address="/import")
+		msg.add_arg(file_path)
+		msg.add_arg(new_file_name)
+		msg.add_arg(classifier)
+		msg = msg.build()
+		client.send(msg)
 
 
 if __name__ == "__main__" :
@@ -89,7 +92,7 @@ if __name__ == "__main__" :
 	client = udp_client.UDPClient("10.18.220.247", 8000)
 
 	disp = Dispatcher()
-	disp.map("/push1", downloadNewScan)
+	disp.map("/push1", downloadNewScan, "Click")
 	disp.map("/light", setLight)
 	disp.map("/heavy", setHeavy)
 
