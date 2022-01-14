@@ -4,7 +4,9 @@ By Kat Sullivan
 
 
 
-All library requirements can be found in requirements.txt (strongly suggest using a virtual environment)
+All library requirements can be found in requirements.txt (strongly suggest using a virtual environment).  You can install all required libraries with the following
+
+`pip install -r requirements.txt`
 
 You will need a keys.txt file with your iCloud email on line 1 and your iCloud email on line 2.
 
