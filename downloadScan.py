@@ -9,7 +9,7 @@ from pythonosc import udp_client
 import pathlib
 import os
 
-classifier = ""
+
 
 def setLight(*params):
 	global classifier
@@ -20,45 +20,66 @@ def setHeavy(*params):
 	classifier = "heavy"
 
 def downloadNewScan(*params):
+	global email
+	global password
+	global api
+
+	#reconnect to update drive with new files
+	# authentication
+	api = PyiCloudService(email, password)
+
 	# ignore button release trigger (0.0), only button push (1.0)
 	if params[2] == 1.0:
 		global classifier
 		print("Received message!")
-		drive_files = api.drive['Scans'].dir()
-		datetimes = {}
-		for f in drive_files:
-			# ignore all non fbx files
-			if ".fbx" in f:
-				drive_file = api.drive['Scans'][f]
-				datetimes[drive_file.name] = drive_file.date_modified
+		selected_filename = params[3]
+		print(selected_filename)
+		if selected_filename == "":
+			drive_files = api.drive['Scans'].dir()
+			datetimes = {}
+			for f in drive_files:
+				# ignore all non fbx files
+				if ".fbx" in f:
+					drive_file = api.drive['Scans'][f]
+					print(api.drive['Scans'][f])
+					datetimes[drive_file.name] = drive_file.date_modified
 
-		# get the newest file in the folder
-		latest_file_name = max(datetimes, key=datetimes.get)
+			# get the newest file in the folder
+			latest_file_name = max(datetimes, key=datetimes.get)
+		else:
+			latest_file_name = selected_filename
+		print(latest_file_name)
 		latest_file = api.drive['Scans'][latest_file_name]
 
-		now = datetime.now() # current date and time
+		# now = datetime.now() # current date and time
 
-		new_file_name = "Scan_" + now.strftime("%m_%d_%y_%H_%M_%S")
-		full_file_name = new_file_name + ".fbx"
+		# new_file_name = "Scan_" + now.strftime("%m_%d_%y_%H_%M_%S")
+		# full_file_name = new_file_name + ".fbx"
 
 		from shutil import copyfileobj
 		with latest_file.open(stream=True) as response:
-			with open(full_file_name, 'wb') as file_out:
+			with open(latest_file_name, 'wb') as file_out:
 				copyfileobj(response.raw, file_out)
 
 		# get file path of newly downloaded fbx scan
-		file_path = os.path.join( pathlib.Path().resolve(), full_file_name )
+		file_path = os.path.join( pathlib.Path().resolve(), latest_file_name )
 		
 		# tell unreal to import the asset
 		msg = osc_message_builder.OscMessageBuilder(address="/import")
+		# arg 0 - path
 		msg.add_arg(file_path)
-		msg.add_arg(new_file_name)
+		# arg 1 - file name
+		msg.add_arg(latest_file_name)
+		# arg 2 - classifer
 		msg.add_arg(classifier)
 		msg = msg.build()
 		client.send(msg)
 
 
 if __name__ == "__main__" :
+	classifier = ""
+	email = ""
+	password = ""
 	# open a file called 'keys' with keys and tokens for this API
 	keyFile = open('keys.txt', 'r')
 	email = keyFile.readline().rstrip()
@@ -89,7 +110,8 @@ if __name__ == "__main__" :
 		print("requires two-step")
 
 	# set up client
-	client = udp_client.UDPClient("10.18.220.247", 8000)
+	# IP address is the computer we are sending it to
+	client = udp_client.UDPClient("10.18.130.228", 8000)
 
 	disp = Dispatcher()
 	disp.map("/push1", downloadNewScan, "Click")
@@ -97,6 +119,7 @@ if __name__ == "__main__" :
 	disp.map("/heavy", setHeavy)
 
 	# set up server
-	server = osc_server.ThreadingOSCUDPServer(("10.18.220.247", 9000), disp)
+	# IP address is THIS machine
+	server = osc_server.ThreadingOSCUDPServer(("10.18.130.228", 9000), disp)
 	server.serve_forever()
 
