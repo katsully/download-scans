@@ -8,7 +8,8 @@ from pythonosc import osc_message_builder
 from pythonosc import udp_client
 import pathlib
 import os
-
+import sys
+from shutil import copyfileobj
 
 
 def setLight(*params):
@@ -27,36 +28,35 @@ def downloadNewScan(*params):
 	#reconnect to update drive with new files
 	# authentication
 	api = PyiCloudService(email, password)
+	print(params)
 
 	# ignore button release trigger (0.0), only button push (1.0)
 	if params[2] == 1.0:
 		global classifier
 		print("Received message!")
-		selected_filename = params[3]
-		print(selected_filename)
-		if selected_filename == "":
-			drive_files = api.drive['Scans'].dir()
-			datetimes = {}
-			for f in drive_files:
-				# ignore all non fbx files
-				if ".fbx" in f:
-					drive_file = api.drive['Scans'][f]
-					print(api.drive['Scans'][f])
-					datetimes[drive_file.name] = drive_file.date_modified
+		# selected_filename = params[1]
+		# print(selected_filename)
+		# if selected_filename == "":
+		drive_files = api.drive['Scans'].dir()
+		datetimes = {}
+		for f in drive_files:
+			# ignore all non fbx files
+			if ".fbx" in f:
+				drive_file = api.drive['Scans'][f]
+				print(api.drive['Scans'][f].name)
+				datetimes[drive_file.name] = drive_file.date_modified
 
-			# get the newest file in the folder
-			latest_file_name = max(datetimes, key=datetimes.get)
-		else:
-			latest_file_name = selected_filename
+		# get the newest file in the folder
+		latest_file_name = max(datetimes, key=datetimes.get)
+		object_name = latest_file_name.split('.')[0]
+
 		print(latest_file_name)
 		latest_file = api.drive['Scans'][latest_file_name]
 
-		# now = datetime.now() # current date and time
+		# update file name to include Scans directory
+		os.mkdir('Scans/' + object_name)
+		latest_file_name = 'Scans/' + object_name + '/' + latest_file_name
 
-		# new_file_name = "Scan_" + now.strftime("%m_%d_%y_%H_%M_%S")
-		# full_file_name = new_file_name + ".fbx"
-
-		from shutil import copyfileobj
 		with latest_file.open(stream=True) as response:
 			with open(latest_file_name, 'wb') as file_out:
 				copyfileobj(response.raw, file_out)
@@ -111,7 +111,12 @@ if __name__ == "__main__" :
 
 	# set up client
 	# IP address is the computer we are sending it to
-	client = udp_client.UDPClient("10.18.130.228", 8000)
+	if len(sys.argv) == 3:
+		client_ip = sys.argv[2]
+	else:
+		client_ip = sys.argv[1]
+	print(client_ip)
+	client = udp_client.UDPClient(client_ip, 8000)
 
 	disp = Dispatcher()
 	disp.map("/push1", downloadNewScan, "Click")
@@ -120,6 +125,6 @@ if __name__ == "__main__" :
 
 	# set up server
 	# IP address is THIS machine
-	server = osc_server.ThreadingOSCUDPServer(("10.18.130.228", 9000), disp)
+	server = osc_server.ThreadingOSCUDPServer((sys.argv[1], 9000), disp)
 	server.serve_forever()
 
